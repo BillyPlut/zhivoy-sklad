@@ -259,9 +259,10 @@
     position: fixed; inset: 0;
     background: rgba(0,0,0,0.65);
     z-index: 200;
-    place-items: center;
+    overflow-y: auto;
+    padding: 20px;
   }
-  .modal-overlay.open { display: grid; animation: fadeIn 0.15s ease; }
+  .modal-overlay.open { display: flex; align-items: flex-start; justify-content: center; animation: fadeIn 0.15s ease; }
   .modal {
     background: var(--surface);
     border: 1px solid var(--border);
