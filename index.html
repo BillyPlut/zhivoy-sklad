@@ -598,6 +598,31 @@
   .btn-google:hover { background: #f8f9fa; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
   .btn-google:disabled { opacity: 0.6; cursor: not-allowed; }
 
+  /* MARGIN */
+  .margin-badge {
+    display: inline-flex; align-items: center;
+    padding: 2px 8px; border-radius: 20px;
+    font-size: 11px; font-weight: 600; font-family: var(--font-head);
+  }
+  .margin-good { background: rgba(79,255,176,0.12); color: var(--accent); }
+  .margin-mid  { background: rgba(255,209,102,0.12); color: var(--warn); }
+  .margin-low  { background: rgba(255,71,87,0.12); color: var(--danger); }
+  .price-input {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 6px; padding: 5px 8px; color: var(--text);
+    font-size: 13px; width: 90px; font-family: var(--font-body);
+    text-align: right;
+  }
+  .price-input:focus { outline: none; border-color: var(--accent); }
+  .fin-cards { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 24px; }
+  .fin-card {
+    flex: 1; min-width: 160px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 16px 20px;
+  }
+  .fin-card-val { font-family: var(--font-head); font-size: 20px; font-weight: 700; }
+  .fin-card-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.6px; margin-top: 4px; }
+
   /* EMPTY STATE */
   .empty-state {
     text-align: center;
@@ -771,6 +796,9 @@
     <div class="nav-item" data-page="cats" onclick="openPage('cats')">
       <span class="icon">🏷️</span> Категории
     </div>
+    <div class="nav-item" data-page="prices" onclick="openPage('prices')">
+      <span class="icon">💰</span> Прайс-лист
+    </div>
     <div class="nav-item" data-page="import" onclick="openPage('import')">
       <span class="icon">📤</span> Импорт Excel
     </div>
@@ -820,6 +848,9 @@
               <th>Категория</th>
               <th>Ед.</th>
               <th>Кол-во</th>
+              <th>Закупочная</th>
+              <th>Продажная</th>
+              <th>Маржа</th>
               <th>Мин. порог</th>
               <th>Статус</th>
               <th>Действия</th>
@@ -882,6 +913,53 @@
       <div class="page-title">Низкий остаток</div>
       <div class="page-sub">Товары, требующие пополнения</div>
       <div id="lowStockList"></div>
+    </div>
+
+    <!-- === PRICES PAGE === -->
+    <div class="page" id="page-prices">
+      <div class="page-title">Прайс-лист</div>
+      <div class="page-sub">Закупочные и продажные цены от дистрибьютора</div>
+      <div class="fin-cards">
+        <div class="fin-card">
+          <div class="fin-card-val" id="finStockCost">—</div>
+          <div class="fin-card-label">Стоимость остатка (закупочная)</div>
+        </div>
+        <div class="fin-card">
+          <div class="fin-card-val" id="finRevenue">—</div>
+          <div class="fin-card-label">Потенциальная выручка</div>
+        </div>
+        <div class="fin-card">
+          <div class="fin-card-val" style="color:var(--accent)" id="finProfit">—</div>
+          <div class="fin-card-label">Потенциальная прибыль</div>
+        </div>
+        <div class="fin-card">
+          <div class="fin-card-val" id="finAvgMargin">—</div>
+          <div class="fin-card-label">Средняя маржа по складу</div>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Название</th>
+              <th>Категория</th>
+              <th>Ед.</th>
+              <th>Кол-во</th>
+              <th>Закупочная цена</th>
+              <th>Продажная цена</th>
+              <th>Маржа</th>
+              <th>Наценка</th>
+              <th>Прибыль на ед.</th>
+            </tr>
+          </thead>
+          <tbody id="priceTableBody"></tbody>
+        </table>
+        <div id="priceEmptyState" class="empty-state" style="display:none">
+          <div class="empty-icon">💰</div>
+          <div class="empty-title">Нет товаров</div>
+          <div>Добавьте товары на странице «Склад»</div>
+        </div>
+      </div>
     </div>
 
     <!-- === IMPORT PAGE === -->
@@ -1008,6 +1086,16 @@
         <input type="number" class="form-input" id="pMin" placeholder="5" min="0">
       </div>
     </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Закупочная цена</label>
+        <input type="number" class="form-input" id="pBuyPrice" placeholder="0.00" min="0" step="0.01">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Продажная цена</label>
+        <input type="number" class="form-input" id="pSellPrice" placeholder="0.00" min="0" step="0.01">
+      </div>
+    </div>
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeModal('productModal')">Отмена</button>
       <button class="btn btn-primary" onclick="saveProduct()">Сохранить</button>
@@ -1074,6 +1162,9 @@
   </button>
   <button class="mobile-nav-item" data-page="low" onclick="openPage('low')">
     <span class="mn-icon">⚠️</span>Остатки
+  </button>
+  <button class="mobile-nav-item" data-page="prices" onclick="openPage('prices')">
+    <span class="mn-icon">💰</span>Прайс
   </button>
   <button class="mobile-nav-item" data-page="import" onclick="openPage('import')">
     <span class="mn-icon">📤</span>Импорт
@@ -1265,6 +1356,7 @@ function openPage(name) {
   document.querySelector('.nav-item[data-page="' + name + '"]')?.classList.add('active');
   document.querySelector('.mobile-nav-item[data-page="' + name + '"]')?.classList.add('active');
   if (name === 'history') renderHistory();
+  if (name === 'prices') renderPriceList();
   if (name === 'low') renderLowStock();
   if (name === 'cats') renderCats();
   if (name === 'warehouse') { renderTable(); buildCatFilter(); }
@@ -1303,6 +1395,71 @@ function buildCatFilter() {
 }
 
 // ============ TABLE ============
+function fmtPrice(v) {
+  if(!v && v!==0) return '—';
+  return v.toLocaleString('ru-RU', { minimumFractionDigits: 0, maximumFractionDigits: 2 }) + ' ₽';
+}
+
+function renderPriceList() {
+  const tbody = document.getElementById('priceTableBody');
+  const empty = document.getElementById('priceEmptyState');
+  if(!products.length){ tbody.innerHTML=''; empty.style.display='block'; updateFinCards(); return; }
+  empty.style.display='none';
+
+  tbody.innerHTML = products.map(p => {
+    const buy = p.buyPrice||0, sell = p.sellPrice||0;
+    const margin = sell>0 ? (sell-buy)/sell*100 : null;
+    const markup = buy>0 ? (sell-buy)/buy*100 : null;
+    const profit = sell>0 && buy>0 ? sell-buy : null;
+    const marginHtml = margin!==null
+      ? `<span class="margin-badge ${margin>=30?'margin-good':margin>=15?'margin-mid':'margin-low'}">${margin.toFixed(1)}%</span>`
+      : '—';
+    return `<tr>
+      <td><b>${p.name}</b></td>
+      <td><span style="color:var(--muted);font-size:12px">${p.cat}</span></td>
+      <td><span class="unit-tag">${p.unit}</span></td>
+      <td><span class="qty-display">${p.qty}</span></td>
+      <td><input class="price-input" type="number" min="0" step="0.01" value="${buy||''}" placeholder="0"
+        onchange="updatePriceField('${p.id}','buyPrice',this.value)"
+        onblur="updatePriceField('${p.id}','buyPrice',this.value)"></td>
+      <td><input class="price-input" type="number" min="0" step="0.01" value="${sell||''}" placeholder="0"
+        onchange="updatePriceField('${p.id}','sellPrice',this.value)"
+        onblur="updatePriceField('${p.id}','sellPrice',this.value)"></td>
+      <td>${marginHtml}</td>
+      <td>${markup!==null ? markup.toFixed(1)+'%' : '—'}</td>
+      <td style="color:var(--accent)">${profit!==null ? fmtPrice(profit) : '—'}</td>
+    </tr>`;
+  }).join('');
+
+  updateFinCards();
+}
+
+function updatePriceField(id, field, rawVal) {
+  const p = products.find(x=>x.id===id);
+  if(!p) return;
+  const val = parseFloat(rawVal)||0;
+  if(p[field] === val) return;
+  p[field] = val;
+  save();
+  renderPriceList();
+  renderTable();
+}
+
+function updateFinCards() {
+  const withPrices = products.filter(p=>p.buyPrice>0 && p.sellPrice>0);
+  const stockCost = products.reduce((s,p)=>s+(p.qty*(p.buyPrice||0)),0);
+  const revenue   = products.reduce((s,p)=>s+(p.qty*(p.sellPrice||0)),0);
+  const profit    = revenue - stockCost;
+  const avgMargin = withPrices.length
+    ? withPrices.reduce((s,p)=>s+(p.sellPrice-p.buyPrice)/p.sellPrice*100,0) / withPrices.length
+    : null;
+
+  document.getElementById('finStockCost').textContent = fmtPrice(stockCost);
+  document.getElementById('finRevenue').textContent   = fmtPrice(revenue);
+  document.getElementById('finProfit').textContent    = fmtPrice(profit);
+  document.getElementById('finAvgMargin').textContent = avgMargin!==null ? avgMargin.toFixed(1)+'%' : '—';
+}
+
 function renderTable() {
   const search = (document.getElementById('searchInput')?.value||'').toLowerCase();
   let list = products.filter(p => {
@@ -1326,11 +1483,20 @@ function renderTable() {
     const pct = p.min>0 ? Math.min(100, Math.round(p.qty/p.min*100)) : 100;
     const barColor = p.qty<=0?'var(--danger)':p.qty<=p.min?'var(--warn)':'var(--accent)';
 
+    const buy = p.buyPrice||0, sell = p.sellPrice||0;
+    const margin = sell>0 ? Math.round((sell-buy)/sell*100) : null;
+    const marginHtml = margin!==null
+      ? `<span class="margin-badge ${margin>=30?'margin-good':margin>=15?'margin-mid':'margin-low'}">${margin}%</span>`
+      : `<span style="color:var(--muted);font-size:12px">—</span>`;
+
     return `<tr>
       <td><b>${p.name}</b></td>
       <td><span style="color:var(--muted);font-size:12px">${p.cat}</span></td>
       <td><span class="unit-tag">${p.unit}</span></td>
       <td><span class="qty-display">${p.qty}</span></td>
+      <td><span style="font-size:12px;color:var(--muted)">${buy>0?fmtPrice(buy):'—'}</span></td>
+      <td><span style="font-size:12px;color:var(--text)">${sell>0?fmtPrice(sell):'—'}</span></td>
+      <td>${marginHtml}</td>
       <td>
         <span style="font-size:12px;color:var(--muted)">${p.min}</span>
         <div class="min-bar" style="margin-left:6px"><div class="min-bar-fill" style="width:${pct}%;background:${barColor}"></div></div>
@@ -1357,6 +1523,8 @@ function openAddModal() {
   document.getElementById('pName').value = '';
   document.getElementById('pQty').value = '';
   document.getElementById('pMin').value = '5';
+  document.getElementById('pBuyPrice').value = '';
+  document.getElementById('pSellPrice').value = '';
   fillCatSelect('pCat');
   document.getElementById('productModal').classList.add('open');
 }
@@ -1370,6 +1538,8 @@ function openEditModal(id) {
   document.getElementById('pName').value = p.name;
   document.getElementById('pQty').value = p.qty;
   document.getElementById('pMin').value = p.min;
+  document.getElementById('pBuyPrice').value = p.buyPrice||'';
+  document.getElementById('pSellPrice').value = p.sellPrice||'';
   fillCatSelect('pCat', p.cat);
   document.getElementById('pUnit').value = p.unit;
   document.getElementById('productModal').classList.add('open');
@@ -1386,19 +1556,21 @@ function saveProduct() {
   const unit = document.getElementById('pUnit').value;
   const qty = parseInt(document.getElementById('pQty').value)||0;
   const min = parseInt(document.getElementById('pMin').value)||0;
+  const buyPrice = parseFloat(document.getElementById('pBuyPrice').value)||0;
+  const sellPrice = parseFloat(document.getElementById('pSellPrice').value)||0;
   if(!name){ toast('Введите название товара','error'); return; }
 
   if(editingId) {
     const p = products.find(x=>x.id===editingId);
     const oldQty = p.qty;
-    p.name=name; p.cat=cat; p.unit=unit; p.qty=qty; p.min=min;
+    p.name=name; p.cat=cat; p.unit=unit; p.qty=qty; p.min=min; p.buyPrice=buyPrice; p.sellPrice=sellPrice;
     if(oldQty!==qty) {
       const diff = qty-oldQty;
       history.unshift({ id:uid(), productId:p.id, productName:p.name, type:diff>=0?'in':'out', qty:Math.abs(diff), comment:'Редактирование', date:new Date().toISOString() });
     }
     toast('Товар обновлён ✓');
   } else {
-    const p = { id:uid(), name, cat, unit, qty, min, createdAt:new Date().toISOString() };
+    const p = { id:uid(), name, cat, unit, qty, min, buyPrice, sellPrice, createdAt:new Date().toISOString() };
     products.push(p);
     if(qty>0) history.unshift({ id:uid(), productId:p.id, productName:p.name, type:'in', qty, comment:'Начальный остаток', date:new Date().toISOString() });
     toast('Товар добавлен ✓');
