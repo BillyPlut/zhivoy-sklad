@@ -1043,6 +1043,14 @@
       <label class="form-label">Количество</label>
       <input type="number" class="form-input" id="opQty" placeholder="1" min="1">
     </div>
+    <div class="form-group" id="opRecipientGroup" style="display:none">
+      <label class="form-label">Кому продано</label>
+      <input type="text" class="form-input" id="opRecipient" placeholder="Имя, организация...">
+    </div>
+    <div class="form-group" id="opDateGroup" style="display:none">
+      <label class="form-label">Дата продажи</label>
+      <input type="date" class="form-input" id="opDate">
+    </div>
     <div class="form-group">
       <label class="form-label">Комментарий (необязательно)</label>
       <input type="text" class="form-input" id="opComment" placeholder="Например: Поставщик ООО «Альфа»">
@@ -1512,6 +1520,8 @@ function openOpModal(productId) {
   selectOpType('in');
   document.getElementById('opQty').value = '';
   document.getElementById('opComment').value = '';
+  document.getElementById('opRecipient').value = '';
+  document.getElementById('opDate').value = new Date().toISOString().slice(0,10);
   document.getElementById('opModal').classList.add('open');
 }
 
@@ -1525,18 +1535,24 @@ function selectOpType(type) {
   document.getElementById('opIn').className = 'op-type-btn' + (type==='in'?' selected-in':'');
   document.getElementById('opOut').className = 'op-type-btn' + (type==='out'?' selected-out':'');
   document.getElementById('opSubmitBtn').textContent = type==='in'?'Провести приход':'Провести расход';
+  const isOut = type === 'out';
+  document.getElementById('opRecipientGroup').style.display = isOut ? '' : 'none';
+  document.getElementById('opDateGroup').style.display = isOut ? '' : 'none';
 }
 
 function doOperation() {
   const productId = document.getElementById('opProduct').value;
   const qty = parseInt(document.getElementById('opQty').value)||0;
   const comment = document.getElementById('opComment').value.trim();
+  const recipient = currentOpType==='out' ? document.getElementById('opRecipient').value.trim() : '';
+  const opDateVal = currentOpType==='out' ? document.getElementById('opDate').value : '';
+  const opDate = opDateVal ? new Date(opDateVal + 'T12:00:00').toISOString() : new Date().toISOString();
   if(qty<=0){ toast('Введите количество больше 0','error'); return; }
   const p = products.find(x=>x.id===productId);
   if(!p) return;
   if(currentOpType==='out' && p.qty<qty){ toast(`Недостаточно товара. На складе: ${p.qty} ${p.unit}`,'error'); return; }
   if(currentOpType==='in') p.qty+=qty; else p.qty-=qty;
-  history.unshift({ id:uid(), productId:p.id, productName:p.name, type:currentOpType, qty, comment:comment||'', date:new Date().toISOString() });
+  history.unshift({ id:uid(), productId:p.id, productName:p.name, type:currentOpType, qty, comment:comment||'', recipient:recipient||'', date:opDate });
   save();
   closeModal('opModal');
   renderTable(); buildCatFilter();
@@ -1652,12 +1668,17 @@ function renderHistory() {
       const d = new Date(h.date);
       const timeStr = d.toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'});
       const nameHl = highlightText(h.productName, search);
-      const commentHl = highlightText(h.comment||'—', search);
+      const commentHl = highlightText(h.comment||'', search);
+      const recipientHl = h.recipient ? highlightText(h.recipient, search) : '';
+      const metaParts = [];
+      if(h.type==='out' && recipientHl) metaParts.push(`<span style="color:var(--text)">👤 ${recipientHl}</span>`);
+      if(commentHl) metaParts.push(commentHl);
+      if(!metaParts.length) metaParts.push('—');
       return `<div class="history-item">
         <div class="history-dot ${h.type==='in'?'dot-in':'dot-out'}">${h.type==='in'?'⬆':'⬇'}</div>
         <div class="history-info">
           <div class="history-prod">${nameHl}</div>
-          <div class="history-meta">${commentHl}</div>
+          <div class="history-meta">${metaParts.join(' · ')}</div>
         </div>
         <div class="history-qty ${h.type==='in'?'qty-in':'qty-out'}">${h.type==='in'?'+':'-'}${h.qty}</div>
         <div class="history-date">${timeStr}</div>
