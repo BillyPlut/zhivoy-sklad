@@ -850,7 +850,7 @@
               <th>Кол-во</th>
               <th>Закупочная</th>
               <th>Продажная</th>
-              <th>Маржа</th>
+              <th>Налог 4%</th>
               <th>Мин. порог</th>
               <th>Статус</th>
               <th>Действия</th>
@@ -947,8 +947,8 @@
               <th>Кол-во</th>
               <th>Закупочная цена</th>
               <th>Продажная цена</th>
-              <th>Маржа</th>
               <th>Налог 4%</th>
+              <th>Наценка</th>
               <th>Прибыль на ед.</th>
             </tr>
           </thead>
@@ -1408,12 +1408,9 @@ function renderPriceList() {
 
   tbody.innerHTML = products.map(p => {
     const buy = p.buyPrice||0, sell = p.sellPrice||0;
-    const margin = sell>0 ? (sell-buy)/sell*100 : null;
-    const tax = sell>0 ? sell*0.04 : null;
+    const tax    = sell>0 ? sell*0.04 : null;
+    const markup = buy>0 ? (sell-buy)/buy*100 : null;
     const profit = sell>0 && buy>0 ? sell-buy : null;
-    const marginHtml = margin!==null
-      ? `<span class="margin-badge ${margin>=30?'margin-good':margin>=15?'margin-mid':'margin-low'}">${margin.toFixed(1)}%</span>`
-      : '—';
     return `<tr>
       <td><b>${p.name}</b></td>
       <td><span style="color:var(--muted);font-size:12px">${p.cat}</span></td>
@@ -1425,8 +1422,8 @@ function renderPriceList() {
       <td><input class="price-input" type="number" min="0" step="0.01" value="${sell||''}" placeholder="0"
         onchange="updatePriceField('${p.id}','sellPrice',this.value)"
         onblur="updatePriceField('${p.id}','sellPrice',this.value)"></td>
-      <td>${marginHtml}</td>
       <td style="color:var(--warn)">${tax!==null ? fmtPrice(tax) : '—'}</td>
+      <td style="color:var(--muted)">${markup!==null ? markup.toFixed(1)+'%' : '—'}</td>
       <td style="color:var(--accent)">${profit!==null ? fmtPrice(profit) : '—'}</td>
     </tr>`;
   }).join('');
@@ -1484,10 +1481,7 @@ function renderTable() {
     const barColor = p.qty<=0?'var(--danger)':p.qty<=p.min?'var(--warn)':'var(--accent)';
 
     const buy = p.buyPrice||0, sell = p.sellPrice||0;
-    const margin = sell>0 ? Math.round((sell-buy)/sell*100) : null;
-    const marginHtml = margin!==null
-      ? `<span class="margin-badge ${margin>=30?'margin-good':margin>=15?'margin-mid':'margin-low'}">${margin}%</span>`
-      : `<span style="color:var(--muted);font-size:12px">—</span>`;
+    const tax = sell>0 ? sell*0.04 : null;
 
     return `<tr>
       <td><b>${p.name}</b></td>
@@ -1496,7 +1490,7 @@ function renderTable() {
       <td><span class="qty-display">${p.qty}</span></td>
       <td><span style="font-size:12px;color:var(--muted)">${buy>0?fmtPrice(buy):'—'}</span></td>
       <td><span style="font-size:12px;color:var(--text)">${sell>0?fmtPrice(sell):'—'}</span></td>
-      <td>${marginHtml}</td>
+      <td><span style="font-size:12px;color:var(--warn)">${tax!==null?fmtPrice(tax):'—'}</span></td>
       <td>
         <span style="font-size:12px;color:var(--muted)">${p.min}</span>
         <div class="min-bar" style="margin-left:6px"><div class="min-bar-fill" style="width:${pct}%;background:${barColor}"></div></div>
