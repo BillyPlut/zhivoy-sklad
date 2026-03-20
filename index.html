@@ -440,8 +440,8 @@
     .page-title { font-size: 18px; }
     table th, table td { padding: 9px 10px; font-size: 12px; }
     .action-btns { flex-direction: row; gap: 4px; }
-    .col-hide-mobile { display: none; }
     .action-btns .btn-sm { padding: 8px 10px; font-size: 16px; }
+    .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
     .modal { padding: 20px 16px; width: 96vw; }
     .form-row { grid-template-columns: 1fr; }
     .col-map { grid-template-columns: 1fr; }
@@ -847,14 +847,14 @@
           <thead>
             <tr>
               <th>Название</th>
-              <th class="col-hide-mobile">Категория</th>
-              <th class="col-hide-mobile">Ед.</th>
+              <th>Категория</th>
+              <th>Ед.</th>
               <th>Кол-во</th>
-              <th class="col-hide-mobile">Закупочная</th>
-              <th class="col-hide-mobile">Продажная</th>
-              <th class="col-hide-mobile">Налог 4%</th>
-              <th class="col-hide-mobile">Мин. порог</th>
-              <th class="col-hide-mobile">Статус</th>
+              <th>Закупочная</th>
+              <th>Продажная</th>
+              <th>Налог 4%</th>
+              <th>Мин. порог</th>
+              <th>Статус</th>
               <th>Действия</th>
             </tr>
           </thead>
@@ -1487,17 +1487,17 @@ function renderTable() {
 
     return `<tr>
       <td><b>${p.name}</b></td>
-      <td class="col-hide-mobile"><span style="color:var(--muted);font-size:12px">${p.cat}</span></td>
-      <td class="col-hide-mobile"><span class="unit-tag">${p.unit}</span></td>
+      <td><span style="color:var(--muted);font-size:12px">${p.cat}</span></td>
+      <td><span class="unit-tag">${p.unit}</span></td>
       <td><span class="qty-display">${p.qty}</span></td>
-      <td class="col-hide-mobile"><span style="font-size:12px;color:var(--muted)">${buy>0?fmtPrice(buy):'—'}</span></td>
-      <td class="col-hide-mobile"><span style="font-size:12px;color:var(--text)">${sell>0?fmtPrice(sell):'—'}</span></td>
-      <td class="col-hide-mobile"><span style="font-size:12px;color:var(--warn)">${tax!==null?fmtPrice(tax):'—'}</span></td>
-      <td class="col-hide-mobile">
+      <td><span style="font-size:12px;color:var(--muted)">${buy>0?fmtPrice(buy):'—'}</span></td>
+      <td><span style="font-size:12px;color:var(--text)">${sell>0?fmtPrice(sell):'—'}</span></td>
+      <td><span style="font-size:12px;color:var(--warn)">${tax!==null?fmtPrice(tax):'—'}</span></td>
+      <td>
         <span style="font-size:12px;color:var(--muted)">${p.min}</span>
         <div class="min-bar" style="margin-left:6px"><div class="min-bar-fill" style="width:${pct}%;background:${barColor}"></div></div>
       </td>
-      <td class="col-hide-mobile"><span class="badge ${status}">${badge}</span></td>
+      <td><span class="badge ${status}">${badge}</span></td>
       <td>
         <div class="action-btns">
           <button class="btn btn-ghost btn-sm" onclick="openOpModal('${p.id}')">⚡<span class="col-hide-mobile"> Операция</span></button>
