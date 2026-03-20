@@ -11,6 +11,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Inject Firebase config
+        run: |
+          sed -i "s|__FIREBASE_CONFIG__|$FIREBASE_CONFIG|g" index.html
+        env:
+          FIREBASE_CONFIG: ${{ secrets.FIREBASE_CONFIG }}
+
       - name: Install Firebase CLI
         run: npm install -g firebase-tools
 
