@@ -1,0 +1,1956 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Живой Склад</title>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@300;400;600;700&family=Geologica:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root {
+    --bg: #0d0f14;
+    --surface: #141720;
+    --surface2: #1c2030;
+    --border: #252a3a;
+    --accent: #4fffb0;
+    --accent2: #ff6b35;
+    --warn: #ffd166;
+    --danger: #ff4757;
+    --text: #e8ecf5;
+    --muted: #6b7490;
+    --green: #4fffb0;
+    --font-head: 'Unbounded', sans-serif;
+    --font-body: 'Geologica', sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* === HEADER === */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 32px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    position: sticky; top: 0; z-index: 100;
+  }
+
+  .logo {
+    display: flex; align-items: center; gap: 12px;
+  }
+  .logo-icon {
+    width: 36px; height: 36px;
+    background: var(--accent);
+    border-radius: 8px;
+    display: grid; place-items: center;
+    font-size: 18px;
+  }
+  .logo-text {
+    font-family: var(--font-head);
+    font-size: 15px; font-weight: 700;
+    letter-spacing: -0.5px;
+  }
+  .logo-text span { color: var(--accent); }
+
+  .header-stats {
+    display: flex; gap: 24px;
+  }
+  .hstat {
+    text-align: center;
+  }
+  .hstat-val {
+    font-family: var(--font-head);
+    font-size: 18px; font-weight: 700;
+    color: var(--accent);
+  }
+  .hstat-label {
+    font-size: 10px; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.8px;
+  }
+
+  .header-actions { display: flex; gap: 10px; }
+
+  /* === MAIN LAYOUT === */
+  .layout { display: flex; flex: 1; }
+
+  /* === SIDEBAR === */
+  .sidebar {
+    width: 220px; min-width: 220px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 20px 0;
+    display: flex; flex-direction: column; gap: 4px;
+  }
+  .sidebar-label {
+    font-size: 10px; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 1px;
+    padding: 6px 20px 4px;
+    font-family: var(--font-head);
+    font-weight: 400;
+  }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 20px;
+    cursor: pointer;
+    font-size: 13.5px;
+    color: var(--muted);
+    border-left: 3px solid transparent;
+    transition: all 0.15s;
+  }
+  .nav-item:hover { color: var(--text); background: var(--surface2); }
+  .nav-item.active {
+    color: var(--accent);
+    border-left-color: var(--accent);
+    background: rgba(79,255,176,0.06);
+  }
+  .nav-item .icon { font-size: 16px; }
+
+  /* === CONTENT === */
+  .content {
+    flex: 1; padding: 28px 32px;
+    overflow-y: auto;
+  }
+
+  .page { display: none; }
+  .page.active { display: block; animation: fadeIn 0.2s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* === PAGE HEADER === */
+  .page-title {
+    font-family: var(--font-head);
+    font-size: 22px; font-weight: 700;
+    margin-bottom: 4px;
+    letter-spacing: -0.5px;
+  }
+  .page-sub { color: var(--muted); font-size: 13px; margin-bottom: 24px; }
+
+  /* === CARDS ROW === */
+  .cards-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+  }
+  .card-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; }
+  .card-val {
+    font-family: var(--font-head);
+    font-size: 28px; font-weight: 700;
+  }
+  .card-val.green { color: var(--accent); }
+  .card-val.warn { color: var(--warn); }
+  .card-val.danger { color: var(--danger); }
+  .card-val.orange { color: var(--accent2); }
+
+  /* === TABLE === */
+  .table-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .table-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .table-title { font-family: var(--font-head); font-size: 13px; font-weight: 600; }
+  .search-box {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 7px 12px;
+    font-size: 13px;
+    color: var(--text);
+  }
+  .search-box input {
+    background: none; border: none; outline: none;
+    color: var(--text); font-size: 13px; font-family: var(--font-body);
+    width: 180px;
+  }
+  .search-box input::placeholder { color: var(--muted); }
+
+  table { width: 100%; border-collapse: collapse; }
+  thead tr { background: var(--surface2); }
+  th {
+    text-align: left;
+    font-size: 10px; font-weight: 500;
+    text-transform: uppercase; letter-spacing: 0.8px;
+    color: var(--muted);
+    padding: 10px 16px;
+    font-family: var(--font-head);
+    border-bottom: 1px solid var(--border);
+  }
+  td {
+    padding: 13px 16px;
+    font-size: 13.5px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+  }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(255,255,255,0.02); }
+
+  .badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 11px; font-weight: 500;
+    font-family: var(--font-head);
+  }
+  .badge-ok { background: rgba(79,255,176,0.12); color: var(--accent); }
+  .badge-low { background: rgba(255,209,102,0.12); color: var(--warn); }
+  .badge-out { background: rgba(255,71,87,0.12); color: var(--danger); }
+
+  .qty-display { font-family: var(--font-head); font-weight: 600; font-size: 14px; }
+
+  /* === BUTTONS === */
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 9px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-family: var(--font-body);
+    cursor: pointer;
+    border: none;
+    transition: all 0.15s;
+    font-weight: 500;
+  }
+  .btn-primary {
+    background: var(--accent);
+    color: #0d0f14;
+  }
+  .btn-primary:hover { background: #3de89e; transform: translateY(-1px); }
+  .btn-ghost {
+    background: var(--surface2);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-danger-ghost {
+    background: transparent;
+    color: var(--danger);
+    border: 1px solid rgba(255,71,87,0.3);
+  }
+  .btn-danger-ghost:hover { background: rgba(255,71,87,0.1); }
+  .btn-sm { padding: 5px 10px; font-size: 12px; border-radius: 6px; }
+
+  /* === ACTION BUTTONS IN TABLE === */
+  .action-btns { display: flex; gap: 6px; }
+
+  /* === MODAL === */
+  .modal-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.65);
+    z-index: 200;
+    place-items: center;
+  }
+  .modal-overlay.open { display: grid; animation: fadeIn 0.15s ease; }
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px;
+    width: 460px;
+    max-width: 95vw;
+  }
+  .modal-title {
+    font-family: var(--font-head);
+    font-size: 16px; font-weight: 700;
+    margin-bottom: 20px;
+    display: flex; align-items: center; gap: 10px;
+  }
+
+  .form-group { margin-bottom: 16px; }
+  .form-label { font-size: 12px; color: var(--muted); margin-bottom: 6px; display: block; text-transform: uppercase; letter-spacing: 0.6px; }
+  .form-input {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    color: var(--text);
+    font-size: 14px;
+    font-family: var(--font-body);
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .form-input:focus { border-color: var(--accent); }
+  .form-select {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    color: var(--text);
+    font-size: 14px;
+    font-family: var(--font-body);
+    outline: none;
+    cursor: pointer;
+    appearance: none;
+    transition: border-color 0.15s;
+  }
+  .form-select:focus { border-color: var(--accent); }
+  option { background: var(--surface2); }
+
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 24px; }
+
+  /* === OPERATION MODAL === */
+  .op-type-btns { display: flex; gap: 8px; margin-bottom: 20px; }
+  .op-type-btn {
+    flex: 1; padding: 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    border: 2px solid var(--border);
+    background: none;
+    color: var(--muted);
+    font-family: var(--font-head);
+    font-size: 12px; font-weight: 600;
+    transition: all 0.15s;
+    text-align: center;
+  }
+  .op-type-btn.selected-in { border-color: var(--accent); color: var(--accent); background: rgba(79,255,176,0.08); }
+  .op-type-btn.selected-out { border-color: var(--accent2); color: var(--accent2); background: rgba(255,107,53,0.08); }
+
+  /* === HISTORY PAGE === */
+  .history-item {
+    display: flex; align-items: center;
+    padding: 13px 16px;
+    border-bottom: 1px solid var(--border);
+    gap: 14px;
+  }
+  .history-item:last-child { border-bottom: none; }
+  .history-dot {
+    width: 32px; height: 32px; border-radius: 8px;
+    display: grid; place-items: center; font-size: 14px;
+    flex-shrink: 0;
+  }
+  .dot-in { background: rgba(79,255,176,0.12); }
+  .dot-out { background: rgba(255,107,53,0.12); }
+  .history-info { flex: 1; }
+  .history-prod { font-size: 13.5px; font-weight: 500; }
+  .history-meta { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+  .history-qty { font-family: var(--font-head); font-size: 14px; font-weight: 700; }
+  .qty-in { color: var(--accent); }
+  .qty-out { color: var(--accent2); }
+  .history-date { font-size: 11px; color: var(--muted); text-align: right; min-width: 80px; }
+
+  /* === LOW STOCK === */
+  .alert-bar {
+    display: flex; align-items: center; gap: 12px;
+    background: rgba(255,71,87,0.08);
+    border: 1px solid rgba(255,71,87,0.2);
+    border-radius: 10px;
+    padding: 12px 16px;
+    margin-bottom: 16px;
+    font-size: 13px;
+  }
+  .alert-icon { font-size: 18px; }
+
+  /* === TOAST === */
+  .toast-container {
+    position: fixed; bottom: 24px; right: 24px;
+    display: flex; flex-direction: column; gap: 8px;
+    z-index: 300;
+  }
+  .toast {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 13px;
+    animation: slideIn 0.2s ease;
+    min-width: 260px;
+  }
+  .toast.error { border-left-color: var(--danger); }
+  @keyframes slideIn { from { transform: translateX(20px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+  /* === CATEGORIES FILTER === */
+  .cat-filter {
+    display: flex; gap: 8px; flex-wrap: wrap;
+    margin-bottom: 16px;
+  }
+  .cat-chip {
+    padding: 5px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: none;
+    color: var(--muted);
+    font-family: var(--font-body);
+    transition: all 0.15s;
+  }
+  .cat-chip:hover { border-color: var(--accent); color: var(--accent); }
+  .cat-chip.active { background: rgba(79,255,176,0.12); border-color: var(--accent); color: var(--accent); }
+
+  /* UNIT SELECT COLOR */
+  .unit-tag {
+    display: inline-block;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-size: 11px;
+    color: var(--muted);
+    font-family: var(--font-head);
+  }
+
+  /* MIN THRESHOLD INDICATOR */
+  .min-bar {
+    height: 4px; background: var(--surface2); border-radius: 2px; width: 80px; display: inline-block; vertical-align: middle; overflow: hidden;
+  }
+  .min-bar-fill { height: 100%; border-radius: 2px; transition: width 0.3s; }
+
+  @media (max-width: 900px) {
+    .cards-row { grid-template-columns: repeat(2, 1fr); }
+    .header-stats { display: none; }
+    .sidebar { width: 180px; min-width: 180px; }
+  }
+
+  /* === MOBILE === */
+  @media (max-width: 640px) {
+    header { padding: 12px 16px; gap: 8px; flex-wrap: wrap; }
+    .logo-text { font-size: 13px; }
+    .header-actions { gap: 6px; }
+    .header-actions .btn { padding: 7px 10px; font-size: 12px; }
+    .sidebar { display: none; }
+    .content { padding: 16px; }
+    .cards-row { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    .card { padding: 14px; }
+    .card-val { font-size: 22px; }
+    .page-title { font-size: 18px; }
+    table th, table td { padding: 9px 10px; font-size: 12px; }
+    .action-btns { flex-direction: column; gap: 4px; }
+    .modal { padding: 20px 16px; width: 96vw; }
+    .form-row { grid-template-columns: 1fr; }
+    .col-map { grid-template-columns: 1fr; }
+
+    /* Mobile bottom nav */
+    .mobile-nav {
+      display: flex !important;
+    }
+    .layout { padding-bottom: 64px; }
+  }
+
+  .mobile-nav {
+    display: none;
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    z-index: 100;
+    padding: 0;
+  }
+  .mobile-nav-item {
+    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 8px 4px;
+    cursor: pointer;
+    font-size: 10px; color: var(--muted);
+    gap: 3px;
+    border: none; background: none;
+    font-family: var(--font-body);
+    transition: color 0.15s;
+  }
+  .mobile-nav-item .mn-icon { font-size: 20px; }
+  .mobile-nav-item.active { color: var(--accent); }
+
+  /* === SYNC STATUS === */
+  .sync-badge {
+    font-size: 11px; padding: 3px 10px;
+    border-radius: 20px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+  }
+
+  /* === SETUP SCREEN === */
+  #setupScreen {
+    display: none;
+    position: fixed; inset: 0;
+    background: var(--bg);
+    z-index: 500;
+    align-items: center; justify-content: center;
+    padding: 20px;
+  }
+  .setup-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 36px 32px;
+    max-width: 520px; width: 100%;
+  }
+  .setup-logo { display: flex; align-items: center; gap: 12px; margin-bottom: 28px; }
+  .setup-logo .logo-icon { width: 44px; height: 44px; font-size: 22px; }
+  .setup-title { font-family: var(--font-head); font-size: 20px; font-weight: 700; margin-bottom: 6px; }
+  .setup-sub { color: var(--muted); font-size: 13px; margin-bottom: 24px; line-height: 1.6; }
+  .setup-steps { margin-bottom: 24px; display: flex; flex-direction: column; gap: 10px; }
+  .setup-step {
+    display: flex; align-items: flex-start; gap: 12px;
+    background: var(--surface2); border-radius: 10px; padding: 12px 14px;
+  }
+  .setup-step-num {
+    width: 24px; height: 24px; border-radius: 50%;
+    background: rgba(79,255,176,0.15); color: var(--accent);
+    font-family: var(--font-head); font-size: 11px; font-weight: 700;
+    display: grid; place-items: center; flex-shrink: 0; margin-top: 1px;
+  }
+  .setup-step-text { font-size: 13px; line-height: 1.5; }
+  .setup-step-text b { color: var(--text); }
+  .setup-step-text a { color: var(--accent); text-decoration: none; }
+  .setup-step-text a:hover { text-decoration: underline; }
+  .setup-textarea {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px 14px; color: var(--text);
+    font-size: 12px; font-family: monospace; resize: vertical; min-height: 110px;
+    outline: none; transition: border-color 0.15s;
+  }
+  .setup-textarea:focus { border-color: var(--accent); }
+  .setup-error { color: var(--danger); font-size: 12px; margin-top: 8px; min-height: 18px; }
+  .setup-actions { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
+  .setup-divider { display: flex; align-items: center; gap: 10px; margin: 16px 0; color: var(--muted); font-size: 12px; }
+  .setup-divider::before, .setup-divider::after { content:''; flex:1; height:1px; background:var(--border); }
+
+  /* === LOGIN SCREEN === */
+  #loginScreen {
+    display: none;
+    position: fixed; inset: 0;
+    background: var(--bg);
+    z-index: 400;
+    align-items: center; justify-content: center;
+    padding: 20px;
+  }
+  #loginScreen::before {
+    content: '';
+    position: fixed; inset: 0;
+    background: radial-gradient(ellipse at 30% 50%, rgba(79,255,176,0.06) 0%, transparent 60%),
+                radial-gradient(ellipse at 70% 20%, rgba(255,107,53,0.04) 0%, transparent 50%);
+    pointer-events: none;
+  }
+  .login-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 40px 36px;
+    max-width: 400px; width: 100%;
+    position: relative;
+  }
+  .login-logo {
+    text-align: center; margin-bottom: 32px;
+  }
+  .login-logo .logo-icon-big {
+    width: 64px; height: 64px;
+    background: var(--accent);
+    border-radius: 16px;
+    display: grid; place-items: center;
+    font-size: 30px;
+    margin: 0 auto 14px;
+    box-shadow: 0 0 32px rgba(79,255,176,0.25);
+  }
+  .login-logo .login-title {
+    font-family: var(--font-head);
+    font-size: 22px; font-weight: 700;
+    letter-spacing: -0.5px;
+  }
+  .login-logo .login-sub {
+    color: var(--muted); font-size: 13px; margin-top: 4px;
+  }
+  .login-error {
+    background: rgba(255,71,87,0.1);
+    border: 1px solid rgba(255,71,87,0.25);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 13px;
+    color: var(--danger);
+    margin-bottom: 16px;
+    display: none;
+  }
+  .login-error.show { display: block; }
+  .pw-wrap { position: relative; }
+  .pw-wrap .form-input { padding-right: 44px; }
+  .pw-toggle {
+    position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+    background: none; border: none; cursor: pointer;
+    color: var(--muted); font-size: 16px; padding: 4px;
+  }
+  .pw-toggle:hover { color: var(--text); }
+
+  /* EMPTY STATE */
+  .empty-state {
+    text-align: center;
+    padding: 48px 20px;
+    color: var(--muted);
+  }
+  .empty-icon { font-size: 48px; margin-bottom: 12px; }
+  .empty-title { font-family: var(--font-head); font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+
+  /* IMPORT DROPZONE */
+  .import-zone {
+    border: 2px dashed var(--border);
+    border-radius: 12px;
+    padding: 36px 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: 20px;
+  }
+  .import-zone:hover, .import-zone.drag-over {
+    border-color: var(--accent);
+    background: rgba(79,255,176,0.04);
+  }
+  .import-zone .iz-icon { font-size: 36px; margin-bottom: 10px; }
+  .import-zone .iz-title { font-family: var(--font-head); font-size: 14px; font-weight: 600; margin-bottom: 6px; }
+  .import-zone .iz-sub { font-size: 12px; color: var(--muted); }
+
+  .import-preview {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 16px;
+    max-height: 280px;
+    overflow-y: auto;
+  }
+  .import-preview table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .import-preview th { background: var(--surface); padding: 8px 12px; text-align: left; color: var(--muted); font-size: 10px; text-transform: uppercase; letter-spacing: 0.6px; font-family: var(--font-head); }
+  .import-preview td { padding: 8px 12px; border-top: 1px solid var(--border); }
+  .import-preview tr:hover td { background: rgba(255,255,255,0.02); }
+
+  .col-map {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+    margin-bottom: 16px;
+  }
+  .col-map-item { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+  .col-map-label { color: var(--muted); min-width: 110px; font-size: 12px; }
+
+  .import-steps {
+    display: flex; gap: 0; margin-bottom: 24px;
+  }
+  .import-step {
+    flex: 1; text-align: center;
+    padding: 10px 6px;
+    font-size: 11px; font-family: var(--font-head); font-weight: 600;
+    color: var(--muted);
+    border-bottom: 2px solid var(--border);
+  }
+  .import-step.active { color: var(--accent); border-bottom-color: var(--accent); }
+</style>
+</head>
+<body>
+
+<!-- ==================== SETUP SCREEN ==================== -->
+<div id="setupScreen">
+  <div class="setup-card">
+    <div class="setup-logo">
+      <div class="logo-icon" style="width:44px;height:44px;background:var(--accent);border-radius:10px;display:grid;place-items:center;font-size:22px">📦</div>
+      <div>
+        <div style="font-family:var(--font-head);font-size:17px;font-weight:700">Живой<span style="color:var(--accent)">Склад</span></div>
+        <div style="font-size:11px;color:var(--muted)">Облачная синхронизация</div>
+      </div>
+    </div>
+
+    <div class="setup-title">Подключите облако</div>
+    <div class="setup-sub">Чтобы данные были доступны с телефона и компьютера, нужно подключить бесплатную базу данных Firebase (Google). Это займёт ~5 минут один раз.</div>
+
+    <div class="setup-steps">
+      <div class="setup-step">
+        <div class="setup-step-num">1</div>
+        <div class="setup-step-text">Зайдите на <a href="https://console.firebase.google.com" target="_blank">console.firebase.google.com</a> через Google-аккаунт и создайте новый проект</div>
+      </div>
+      <div class="setup-step">
+        <div class="setup-step-num">2</div>
+        <div class="setup-step-text">В проекте откройте <b>Firestore Database</b> → «Создать базу данных» → режим <b>test mode</b></div>
+      </div>
+      <div class="setup-step">
+        <div class="setup-step-num">3</div>
+        <div class="setup-step-text">Откройте <b>Authentication</b> → «Начать» → включите провайдер <b>Email/Password</b></div>
+      </div>
+      <div class="setup-step">
+        <div class="setup-step-num">4</div>
+        <div class="setup-step-text">В настройках проекта (⚙️) → <b>Ваши приложения</b> → добавьте Web-приложение → скопируйте <b>firebaseConfig</b> (JSON) и вставьте сюда:</div>
+      </div>
+    </div>
+
+    <textarea class="setup-textarea" id="fbConfigInput" placeholder='{"apiKey":"AIza...","authDomain":"...","projectId":"...","storageBucket":"...","messagingSenderId":"...","appId":"..."}'></textarea>
+    <div class="setup-error" id="fbError"></div>
+
+    <div class="setup-actions">
+      <button class="btn btn-primary" id="fbConnectBtn" onclick="connectFirebase()">☁️ Подключить Firebase</button>
+    </div>
+
+    <div class="setup-divider">или</div>
+
+    <button class="btn btn-ghost" style="width:100%;justify-content:center" onclick="skipFirebase()">
+      Продолжить без синхронизации (только локально)
+    </button>
+  </div>
+</div>
+
+<!-- ==================== LOGIN SCREEN ==================== -->
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="logo-icon-big">📦</div>
+      <div class="login-title">Живой<span style="color:var(--accent)">Склад</span></div>
+      <div class="login-sub">Войдите, чтобы продолжить</div>
+    </div>
+
+    <div class="login-error" id="loginError"></div>
+
+    <div class="form-group">
+      <label class="form-label">Email</label>
+      <input type="email" class="form-input" id="loginEmail" placeholder="you@example.com"
+        onkeydown="if(event.key==='Enter') document.getElementById('loginPassword').focus()">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Пароль</label>
+      <div class="pw-wrap">
+        <input type="password" class="form-input" id="loginPassword" placeholder="••••••••"
+          onkeydown="if(event.key==='Enter') doLogin()">
+        <button class="pw-toggle" onclick="togglePw()" id="pwToggleBtn" title="Показать пароль">👁</button>
+      </div>
+    </div>
+
+    <button class="btn btn-primary" id="loginBtn" onclick="doLogin()" style="width:100%;justify-content:center;margin-top:8px;padding:13px">
+      Войти
+    </button>
+
+    <p style="text-align:center;font-size:12px;color:var(--muted);margin-top:20px;line-height:1.6">
+      Нет аккаунта? Введите email и пароль — <br>аккаунт создастся автоматически при первом входе
+    </p>
+  </div>
+</div>
+
+<!-- ==================== APP SHELL ==================== -->
+<div id="appShell" style="display:flex;flex-direction:column;min-height:100vh">
+  <div class="logo">
+    <div class="logo-icon">📦</div>
+    <div class="logo-text">Живой<span>Склад</span></div>
+  </div>
+  <div class="header-stats">
+    <div class="hstat">
+      <div class="hstat-val" id="hTotalItems">0</div>
+      <div class="hstat-label">Позиций</div>
+    </div>
+    <div class="hstat">
+      <div class="hstat-val" id="hTotalQty">0</div>
+      <div class="hstat-label">Всего единиц</div>
+    </div>
+    <div class="hstat">
+      <div class="hstat-val" id="hLowCount" style="color:var(--warn)">0</div>
+      <div class="hstat-label">Мало на складе</div>
+    </div>
+  </div>
+  <div class="header-actions">
+    <span class="sync-badge" id="syncStatus">⏳ Загрузка...</span>
+    <button class="btn btn-ghost" onclick="exportExcel()" title="Экспорт в Excel">📥 Excel</button>
+    <button class="btn btn-ghost" onclick="openPage('import')">📤 Импорт</button>
+    <button class="btn btn-ghost" onclick="openPage('history')">📋 История</button>
+    <button class="btn btn-primary" onclick="openAddModal()">＋ Товар</button>
+    <button class="btn btn-ghost" onclick="doLogout()" title="Выйти" style="padding:9px 10px">🚪</button>
+  </div>
+</header>
+
+<div class="layout">
+  <!-- SIDEBAR -->
+  <nav class="sidebar">
+    <div class="sidebar-label">Навигация</div>
+    <div class="nav-item active" data-page="warehouse" onclick="openPage('warehouse')">
+      <span class="icon">🏭</span> Склад
+    </div>
+    <div class="nav-item" data-page="history" onclick="openPage('history')">
+      <span class="icon">📋</span> История операций
+    </div>
+    <div class="nav-item" data-page="low" onclick="openPage('low')">
+      <span class="icon">⚠️</span> Низкий остаток
+    </div>
+    <div class="nav-item" data-page="cats" onclick="openPage('cats')">
+      <span class="icon">🏷️</span> Категории
+    </div>
+    <div class="nav-item" data-page="import" onclick="openPage('import')">
+      <span class="icon">📤</span> Импорт Excel
+    </div>
+    <div style="flex:1"></div>
+    <div class="nav-item" onclick="resetFirebase()" style="margin-top:auto;color:var(--muted);font-size:12px">
+      <span class="icon">⚙️</span> Настройки облака
+    </div>
+  </nav>
+
+  <!-- CONTENT -->
+  <main class="content">
+
+    <!-- === WAREHOUSE PAGE === -->
+    <div class="page active" id="page-warehouse">
+      <div class="page-title">Склад</div>
+      <div class="page-sub">Все товары и текущие остатки</div>
+
+      <div class="cards-row">
+        <div class="card">
+          <div class="card-label">Всего позиций</div>
+          <div class="card-val green" id="statTotal">0</div>
+        </div>
+        <div class="card">
+          <div class="card-label">Единиц на складе</div>
+          <div class="card-val" id="statQty">0</div>
+        </div>
+        <div class="card">
+          <div class="card-label">Мало на складе</div>
+          <div class="card-val warn" id="statLow">0</div>
+        </div>
+        <div class="card">
+          <div class="card-label">Нет в наличии</div>
+          <div class="card-val danger" id="statOut">0</div>
+        </div>
+      </div>
+
+      <div class="cat-filter" id="catFilter"></div>
+
+      <div class="table-wrap">
+        <div class="table-header">
+          <div class="table-title">Товары</div>
+          <div class="search-box">
+            🔍 <input type="text" id="searchInput" placeholder="Поиск по названию..." oninput="renderTable()">
+          </div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Название</th>
+              <th>Категория</th>
+              <th>Ед.</th>
+              <th>Кол-во</th>
+              <th>Мин. порог</th>
+              <th>Статус</th>
+              <th>Действия</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+        <div id="emptyState" class="empty-state" style="display:none">
+          <div class="empty-icon">📭</div>
+          <div class="empty-title">Нет товаров</div>
+          <div>Добавьте первый товар, нажав «＋ Товар»</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- === HISTORY PAGE === -->
+    <div class="page" id="page-history">
+      <div class="page-title">История операций</div>
+      <div class="page-sub">Все движения товаров на складе</div>
+
+      <!-- FILTERS BAR -->
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;align-items:center">
+        <div class="search-box" style="flex:1;min-width:200px">
+          🔍 <input type="text" id="histSearchInput" placeholder="Поиск по товару или комментарию..." oninput="renderHistory()" style="width:100%">
+        </div>
+        <select class="form-select" id="histTypeFilter" onchange="renderHistory()" style="width:150px">
+          <option value="all">Все операции</option>
+          <option value="in">⬆ Приход</option>
+          <option value="out">⬇ Расход</option>
+        </select>
+        <select class="form-select" id="histProductFilter" onchange="renderHistory()" style="width:200px">
+          <option value="all">Все товары</option>
+        </select>
+        <div style="display:flex;gap:6px;align-items:center">
+          <input type="date" class="form-input" id="histDateFrom" onchange="renderHistory()" style="width:140px;padding:8px 10px;font-size:12px" title="Дата от">
+          <span style="color:var(--muted);font-size:12px">—</span>
+          <input type="date" class="form-input" id="histDateTo" onchange="renderHistory()" style="width:140px;padding:8px 10px;font-size:12px" title="Дата до">
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="clearHistoryFilters()" title="Сбросить фильтры">✕ Сброс</button>
+      </div>
+
+      <!-- RESULTS STATS -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div style="font-size:12px;color:var(--muted)" id="histStats">Загрузка...</div>
+        <button class="btn btn-ghost btn-sm" onclick="exportHistoryExcel()">📥 Экспорт фильтра</button>
+      </div>
+
+      <div class="table-wrap">
+        <div id="historyList"></div>
+        <div id="historyEmpty" class="empty-state" style="display:none">
+          <div class="empty-icon">🗂️</div>
+          <div class="empty-title" id="histEmptyTitle">Нет операций</div>
+          <div id="histEmptySubtitle">История будет отображаться здесь</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- === LOW STOCK PAGE === -->
+    <div class="page" id="page-low">
+      <div class="page-title">Низкий остаток</div>
+      <div class="page-sub">Товары, требующие пополнения</div>
+      <div id="lowStockList"></div>
+    </div>
+
+    <!-- === IMPORT PAGE === -->
+    <div class="page" id="page-import">
+      <div class="page-title">Импорт из Excel</div>
+      <div class="page-sub">Загрузите файл .xlsx или .csv с товарами</div>
+
+      <div class="import-steps">
+        <div class="import-step active" id="istep1">1. Загрузка файла</div>
+        <div class="import-step" id="istep2">2. Сопоставление колонок</div>
+        <div class="import-step" id="istep3">3. Предпросмотр и импорт</div>
+      </div>
+
+      <!-- STEP 1 -->
+      <div id="importStep1">
+        <div class="import-zone" id="dropZone" onclick="document.getElementById('fileInput').click()"
+          ondragover="event.preventDefault();this.classList.add('drag-over')"
+          ondragleave="this.classList.remove('drag-over')"
+          ondrop="handleFileDrop(event)">
+          <div class="iz-icon">📂</div>
+          <div class="iz-title">Перетащите файл сюда или нажмите для выбора</div>
+          <div class="iz-sub">Поддерживаются форматы: .xlsx, .xls, .csv</div>
+        </div>
+        <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" style="display:none" onchange="handleFileSelect(event)">
+        <div class="table-wrap" style="margin-bottom:20px">
+          <div style="padding:16px 20px;border-bottom:1px solid var(--border)">
+            <div class="table-title" style="font-size:12px;color:var(--muted)">📋 Ожидаемый формат файла</div>
+          </div>
+          <table>
+            <thead><tr><th>Название</th><th>Категория</th><th>Единица</th><th>Количество</th><th>Мин. порог</th></tr></thead>
+            <tbody>
+              <tr><td>Болт М8х20</td><td>Расходники</td><td>шт</td><td>150</td><td>20</td></tr>
+              <tr><td>Масло моторное 5W-40</td><td>Запчасти</td><td>л</td><td>48</td><td>10</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="downloadTemplate()">⬇ Скачать шаблон Excel</button>
+      </div>
+
+      <!-- STEP 2 -->
+      <div id="importStep2" style="display:none">
+        <div style="margin-bottom:16px;font-size:13px;color:var(--muted)">Сопоставьте колонки из вашего файла с полями склада:</div>
+        <div class="col-map" id="colMapArea"></div>
+        <div style="display:flex;gap:10px;margin-top:16px">
+          <button class="btn btn-ghost" onclick="importGoStep(1)">← Назад</button>
+          <button class="btn btn-primary" onclick="importGoStep(3)">Далее →</button>
+        </div>
+      </div>
+
+      <!-- STEP 3 -->
+      <div id="importStep3" style="display:none">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+          <div style="font-size:13px;color:var(--muted)">Найдено строк: <b id="importRowCount" style="color:var(--text)">0</b></div>
+          <label style="font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px;cursor:pointer">
+            <input type="checkbox" id="skipDupes" checked style="accent-color:var(--accent)"> Пропускать дубликаты
+          </label>
+        </div>
+        <div class="import-preview" id="importPreview"></div>
+        <div style="display:flex;gap:10px;margin-top:16px">
+          <button class="btn btn-ghost" onclick="importGoStep(2)">← Назад</button>
+          <button class="btn btn-primary" onclick="doImport()">✅ Импортировать</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- === CATEGORIES PAGE === -->
+    <div class="page" id="page-cats">
+      <div class="page-title">Категории</div>
+      <div class="page-sub">Управление категориями товаров</div>
+      <div style="display:flex;gap:12px;margin-bottom:20px;">
+        <input type="text" class="form-input" id="newCatInput" placeholder="Название категории..." style="max-width:280px;">
+        <button class="btn btn-primary" onclick="addCategory()">＋ Добавить</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Категория</th><th>Товаров</th><th></th></tr>
+          </thead>
+          <tbody id="catsTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ==================== MODALS ==================== -->
+
+<!-- ADD/EDIT PRODUCT MODAL -->
+<div class="modal-overlay" id="productModal">
+  <div class="modal">
+    <div class="modal-title">
+      <span id="productModalIcon">📦</span>
+      <span id="productModalTitle">Добавить товар</span>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Название товара</label>
+      <input type="text" class="form-input" id="pName" placeholder="Например: Болт М8х20">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Категория</label>
+        <select class="form-select" id="pCat"></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Единица измерения</label>
+        <select class="form-select" id="pUnit">
+          <option value="шт">шт — штуки</option>
+          <option value="кг">кг — килограммы</option>
+          <option value="л">л — литры</option>
+          <option value="м">м — метры</option>
+          <option value="уп">уп — упаковки</option>
+          <option value="пара">пара</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Начальное кол-во</label>
+        <input type="number" class="form-input" id="pQty" placeholder="0" min="0">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Минимальный порог</label>
+        <input type="number" class="form-input" id="pMin" placeholder="5" min="0">
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('productModal')">Отмена</button>
+      <button class="btn btn-primary" onclick="saveProduct()">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<!-- OPERATION MODAL -->
+<div class="modal-overlay" id="opModal">
+  <div class="modal">
+    <div class="modal-title">⚡ Операция с товаром</div>
+    <div class="op-type-btns">
+      <button class="op-type-btn selected-in" id="opIn" onclick="selectOpType('in')">⬆ Приход</button>
+      <button class="op-type-btn" id="opOut" onclick="selectOpType('out')">⬇ Расход</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Товар</label>
+      <select class="form-select" id="opProduct"></select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Количество</label>
+      <input type="number" class="form-input" id="opQty" placeholder="1" min="1">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Комментарий (необязательно)</label>
+      <input type="text" class="form-input" id="opComment" placeholder="Например: Поставщик ООО «Альфа»">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('opModal')">Отмена</button>
+      <button class="btn btn-primary" id="opSubmitBtn" onclick="doOperation()">Провести приход</button>
+    </div>
+  </div>
+</div>
+
+<!-- DELETE CONFIRM MODAL -->
+<div class="modal-overlay" id="delModal">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-title">🗑️ Удалить товар?</div>
+    <p style="color:var(--muted);font-size:14px;margin-bottom:20px;">Это действие нельзя отменить. Вся история операций по товару также будет удалена.</p>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('delModal')">Отмена</button>
+      <button class="btn btn-danger-ghost" onclick="confirmDelete()">Удалить</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- MOBILE BOTTOM NAV -->
+<nav class="mobile-nav" id="mobileNav">
+  <button class="mobile-nav-item active" data-page="warehouse" onclick="openPage('warehouse')">
+    <span class="mn-icon">🏭</span>Склад
+  </button>
+  <button class="mobile-nav-item" data-page="history" onclick="openPage('history')">
+    <span class="mn-icon">📋</span>История
+  </button>
+  <button class="mobile-nav-item" data-page="low" onclick="openPage('low')">
+    <span class="mn-icon">⚠️</span>Остатки
+  </button>
+  <button class="mobile-nav-item" data-page="import" onclick="openPage('import')">
+    <span class="mn-icon">📤</span>Импорт
+  </button>
+  <button class="mobile-nav-item" data-page="cats" onclick="openPage('cats')">
+    <span class="mn-icon">🏷️</span>Катег.
+  </button>
+</nav>
+
+</div><!-- end appShell -->
+
+<script>
+// ============ STATE ============
+let products = [];
+let history = [];
+let categories = ["Общее","Расходники","Инструмент","Запчасти"];
+
+let editingId = null;
+let deletingId = null;
+let currentOpType = 'in';
+let currentCatFilter = 'all';
+
+// ============ FIREBASE CONFIG ============
+let db = null;
+let auth = null;
+let fbConfig = null;
+let saveTimer = null;
+let currentUser = null;
+
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2); }
+
+function save() {
+  localStorage.setItem('zs_products', JSON.stringify(products));
+  localStorage.setItem('zs_history', JSON.stringify(history));
+  localStorage.setItem('zs_cats', JSON.stringify(categories));
+  if(db && currentUser) {
+    clearTimeout(saveTimer);
+    showSyncStatus('saving');
+    saveTimer = setTimeout(()=>syncToFirebase(), 700);
+  }
+}
+
+async function syncToFirebase() {
+  if(!db || !currentUser) return;
+  try {
+    const { doc, setDoc } = window.firestoreFns;
+    await setDoc(doc(db, 'users', currentUser.uid, 'sklad', 'data'), {
+      products, history, categories,
+      updatedAt: new Date().toISOString()
+    });
+    showSyncStatus('saved');
+  } catch(e) {
+    console.error('Firebase save error:', e);
+    showSyncStatus('error');
+  }
+}
+
+async function loadFromFirebase() {
+  if(!db || !currentUser) return false;
+  try {
+    const { doc, getDoc } = window.firestoreFns;
+    const snap = await getDoc(doc(db, 'users', currentUser.uid, 'sklad', 'data'));
+    if(snap.exists()) {
+      const data = snap.data();
+      products   = data.products   || [];
+      history    = data.history    || [];
+      categories = data.categories || ["Общее","Расходники","Инструмент","Запчасти"];
+      localStorage.setItem('zs_products', JSON.stringify(products));
+      localStorage.setItem('zs_history',  JSON.stringify(history));
+      localStorage.setItem('zs_cats',     JSON.stringify(categories));
+      return true;
+    }
+  } catch(e) { console.error('Firebase load error:', e); }
+  return false;
+}
+
+function showSyncStatus(status) {
+  const el = document.getElementById('syncStatus');
+  if(!el) return;
+  if(status==='saving') { el.textContent='⏳ Сохранение...'; el.style.color='var(--muted)'; }
+  else if(status==='saved') { el.textContent='☁️ Синхронизировано'; el.style.color='var(--accent)'; }
+  else if(status==='offline') { el.textContent='📴 Офлайн'; el.style.color='var(--warn)'; }
+  else if(status==='error') { el.textContent='⚠️ Ошибка синхронизации'; el.style.color='var(--danger)'; }
+}
+
+async function initFirebase(config) {
+  try {
+    const { initializeApp, getApps } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
+    const { getFirestore, doc, getDoc, setDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    const { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged }
+      = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js');
+
+    window.firestoreFns = { doc, getDoc, setDoc };
+    window.authFns = { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged };
+
+    const app = getApps().length ? getApps()[0] : initializeApp(config);
+    db   = getFirestore(app);
+    auth = getAuth(app);
+    return true;
+  } catch(e) {
+    console.error('Firebase init error:', e);
+    return false;
+  }
+}
+
+// ============ AUTH ============
+function showLoginScreen() {
+  document.getElementById('appShell').style.display = 'none';
+  document.getElementById('loginScreen').style.display = 'flex';
+  document.getElementById('setupScreen').style.display = 'none';
+}
+
+function hideLoginScreen() {
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('appShell').style.display = 'flex';
+}
+
+function togglePw() {
+  const inp = document.getElementById('loginPassword');
+  const btn = document.getElementById('pwToggleBtn');
+  if(inp.type === 'password') { inp.type = 'text'; btn.textContent = '🙈'; }
+  else { inp.type = 'password'; btn.textContent = '👁'; }
+}
+
+async function doLogin() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  const btn = document.getElementById('loginBtn');
+  const errEl = document.getElementById('loginError');
+  errEl.classList.remove('show');
+
+  if(!email || !password) { showLoginError('Введите email и пароль'); return; }
+
+  btn.textContent = 'Вход...'; btn.disabled = true;
+
+  const { signInWithEmailAndPassword, createUserWithEmailAndPassword } = window.authFns;
+
+  try {
+    // Try sign in first, if no user — create
+    let userCred;
+    try {
+      userCred = await signInWithEmailAndPassword(auth, email, password);
+    } catch(e) {
+      if(e.code === 'auth/user-not-found' || e.code === 'auth/invalid-credential') {
+        userCred = await createUserWithEmailAndPassword(auth, email, password);
+        toast('🎉 Аккаунт создан и выполнен вход');
+      } else { throw e; }
+    }
+    currentUser = userCred.user;
+    hideLoginScreen();
+    showSyncStatus('saving');
+    const loaded = await loadFromFirebase();
+    showSyncStatus('saved');
+    renderTable(); buildCatFilter(); updateStats();
+    if(loaded) toast('☁️ Данные загружены из облака ✓');
+  } catch(e) {
+    const msgs = {
+      'auth/wrong-password': 'Неверный пароль',
+      'auth/invalid-email': 'Неверный формат email',
+      'auth/too-many-requests': 'Слишком много попыток. Подождите немного',
+      'auth/invalid-credential': 'Неверный email или пароль',
+      'auth/email-already-in-use': 'Этот email уже используется',
+      'auth/weak-password': 'Пароль должен быть не менее 6 символов',
+    };
+    showLoginError(msgs[e.code] || ('Ошибка: ' + e.message));
+  }
+
+  btn.textContent = 'Войти'; btn.disabled = false;
+}
+
+function showLoginError(msg) {
+  const el = document.getElementById('loginError');
+  el.textContent = msg; el.classList.add('show');
+}
+
+async function doLogout() {
+  if(!auth) return;
+  await window.authFns.signOut(auth);
+  currentUser = null;
+  products = []; history = []; categories = ["Общее","Расходники","Инструмент","Запчасти"];
+  showLoginScreen();
+  toast('Вы вышли из системы');
+}
+
+// ============ SETUP SCREEN ============
+function showSetupScreen() {
+  document.getElementById('appShell').style.display = 'none';
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('setupScreen').style.display = 'flex';
+}
+
+function hideSetupScreen() {
+  document.getElementById('setupScreen').style.display = 'none';
+}
+
+async function connectFirebase() {
+  const raw = document.getElementById('fbConfigInput').value.trim();
+  const btn = document.getElementById('fbConnectBtn');
+  const err = document.getElementById('fbError');
+  err.textContent = '';
+  if(!raw){ err.textContent = 'Вставьте конфигурацию Firebase'; return; }
+
+  let config;
+  try {
+    const cleaned = raw.replace(/^const\s+\w+\s*=\s*/, '').replace(/;$/, '').trim();
+    config = JSON.parse(cleaned);
+  } catch(e) {
+    err.textContent = 'Неверный формат. Скопируйте JSON как есть.';
+    return;
+  }
+
+  btn.textContent = 'Подключение...'; btn.disabled = true;
+  const ok = await initFirebase(config);
+  if(!ok) {
+    err.textContent = 'Не удалось подключиться. Проверьте конфигурацию.';
+    btn.textContent = 'Подключить'; btn.disabled = false;
+    return;
+  }
+
+  localStorage.setItem('zs_fb_config', JSON.stringify(config));
+  fbConfig = config;
+  hideSetupScreen();
+  showLoginScreen();
+  btn.textContent = 'Подключить'; btn.disabled = false;
+}
+
+function skipFirebase() {
+  localStorage.setItem('zs_skip_firebase', '1');
+  hideSetupScreen();
+  showSyncStatus('offline');
+  products   = JSON.parse(localStorage.getItem('zs_products') || '[]');
+  history    = JSON.parse(localStorage.getItem('zs_history')  || '[]');
+  categories = JSON.parse(localStorage.getItem('zs_cats')     || '["Общее","Расходники","Инструмент","Запчасти"]');
+  document.getElementById('appShell').style.display = 'flex';
+  renderTable(); buildCatFilter(); updateStats();
+}
+
+function resetFirebase() {
+  if(!confirm('Сбросить настройки облака и выйти?')) return;
+  localStorage.removeItem('zs_fb_config');
+  localStorage.removeItem('zs_skip_firebase');
+  location.reload();
+}
+
+// ============ NAVIGATION ============
+function openPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.querySelectorAll('.mobile-nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  document.querySelector('.nav-item[data-page="' + name + '"]')?.classList.add('active');
+  document.querySelector('.mobile-nav-item[data-page="' + name + '"]')?.classList.add('active');
+  if (name === 'history') renderHistory();
+  if (name === 'low') renderLowStock();
+  if (name === 'cats') renderCats();
+  if (name === 'warehouse') { renderTable(); buildCatFilter(); }
+}
+
+// ============ STATS ============
+function updateStats() {
+  const total = products.length;
+  const totalQty = products.reduce((s,p)=>s+p.qty,0);
+  const low = products.filter(p=>p.qty>0 && p.qty<=p.min).length;
+  const out = products.filter(p=>p.qty<=0).length;
+  ['statTotal','hTotalItems'].forEach(id=>{ if(document.getElementById(id)) document.getElementById(id).textContent=total; });
+  ['statQty','hTotalQty'].forEach(id=>{ if(document.getElementById(id)) document.getElementById(id).textContent=totalQty; });
+  ['statLow'].forEach(id=>{ if(document.getElementById(id)) document.getElementById(id).textContent=low; });
+  ['statOut'].forEach(id=>{ if(document.getElementById(id)) document.getElementById(id).textContent=out; });
+  if(document.getElementById('hLowCount')) document.getElementById('hLowCount').textContent = low+out;
+}
+
+// ============ CAT FILTER ============
+function buildCatFilter() {
+  const el = document.getElementById('catFilter');
+  const usedCats = [...new Set(products.map(p=>p.cat))];
+  el.innerHTML = '';
+  const all = document.createElement('button');
+  all.className = 'cat-chip' + (currentCatFilter==='all'?' active':'');
+  all.textContent = 'Все';
+  all.onclick = ()=>{ currentCatFilter='all'; buildCatFilter(); renderTable(); };
+  el.appendChild(all);
+  usedCats.forEach(c=>{
+    const chip = document.createElement('button');
+    chip.className = 'cat-chip' + (currentCatFilter===c?' active':'');
+    chip.textContent = c;
+    chip.onclick = ()=>{ currentCatFilter=c; buildCatFilter(); renderTable(); };
+    el.appendChild(chip);
+  });
+}
+
+// ============ TABLE ============
+function renderTable() {
+  const search = (document.getElementById('searchInput')?.value||'').toLowerCase();
+  let list = products.filter(p => {
+    const matchSearch = p.name.toLowerCase().includes(search);
+    const matchCat = currentCatFilter==='all' || p.cat===currentCatFilter;
+    return matchSearch && matchCat;
+  });
+
+  const tbody = document.getElementById('tableBody');
+  const empty = document.getElementById('emptyState');
+
+  if (products.length===0) { tbody.innerHTML=''; empty.style.display='block'; updateStats(); return; }
+  empty.style.display='none';
+
+  tbody.innerHTML = list.map(p => {
+    let status, badge;
+    if(p.qty<=0){ status='badge-out'; badge='Нет в наличии'; }
+    else if(p.qty<=p.min){ status='badge-low'; badge='Мало'; }
+    else { status='badge-ok'; badge='В наличии'; }
+
+    const pct = p.min>0 ? Math.min(100, Math.round(p.qty/p.min*100)) : 100;
+    const barColor = p.qty<=0?'var(--danger)':p.qty<=p.min?'var(--warn)':'var(--accent)';
+
+    return `<tr>
+      <td><b>${p.name}</b></td>
+      <td><span style="color:var(--muted);font-size:12px">${p.cat}</span></td>
+      <td><span class="unit-tag">${p.unit}</span></td>
+      <td><span class="qty-display">${p.qty}</span></td>
+      <td>
+        <span style="font-size:12px;color:var(--muted)">${p.min}</span>
+        <div class="min-bar" style="margin-left:6px"><div class="min-bar-fill" style="width:${pct}%;background:${barColor}"></div></div>
+      </td>
+      <td><span class="badge ${status}">${badge}</span></td>
+      <td>
+        <div class="action-btns">
+          <button class="btn btn-ghost btn-sm" onclick="openOpModal('${p.id}')">⚡ Операция</button>
+          <button class="btn btn-ghost btn-sm" onclick="openEditModal('${p.id}')">✏️</button>
+          <button class="btn btn-danger-ghost btn-sm" onclick="openDelModal('${p.id}')">🗑️</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+
+  updateStats();
+}
+
+// ============ ADD / EDIT PRODUCT ============
+function openAddModal() {
+  editingId = null;
+  document.getElementById('productModalTitle').textContent = 'Добавить товар';
+  document.getElementById('productModalIcon').textContent = '📦';
+  document.getElementById('pName').value = '';
+  document.getElementById('pQty').value = '';
+  document.getElementById('pMin').value = '5';
+  fillCatSelect('pCat');
+  document.getElementById('productModal').classList.add('open');
+}
+
+function openEditModal(id) {
+  const p = products.find(x=>x.id===id);
+  if(!p) return;
+  editingId = id;
+  document.getElementById('productModalTitle').textContent = 'Редактировать товар';
+  document.getElementById('productModalIcon').textContent = '✏️';
+  document.getElementById('pName').value = p.name;
+  document.getElementById('pQty').value = p.qty;
+  document.getElementById('pMin').value = p.min;
+  fillCatSelect('pCat', p.cat);
+  document.getElementById('pUnit').value = p.unit;
+  document.getElementById('productModal').classList.add('open');
+}
+
+function fillCatSelect(id, selected) {
+  const sel = document.getElementById(id);
+  sel.innerHTML = categories.map(c=>`<option value="${c}" ${c===selected?'selected':''}>${c}</option>`).join('');
+}
+
+function saveProduct() {
+  const name = document.getElementById('pName').value.trim();
+  const cat = document.getElementById('pCat').value;
+  const unit = document.getElementById('pUnit').value;
+  const qty = parseInt(document.getElementById('pQty').value)||0;
+  const min = parseInt(document.getElementById('pMin').value)||0;
+  if(!name){ toast('Введите название товара','error'); return; }
+
+  if(editingId) {
+    const p = products.find(x=>x.id===editingId);
+    const oldQty = p.qty;
+    p.name=name; p.cat=cat; p.unit=unit; p.qty=qty; p.min=min;
+    if(oldQty!==qty) {
+      const diff = qty-oldQty;
+      history.unshift({ id:uid(), productId:p.id, productName:p.name, type:diff>=0?'in':'out', qty:Math.abs(diff), comment:'Редактирование', date:new Date().toISOString() });
+    }
+    toast('Товар обновлён ✓');
+  } else {
+    const p = { id:uid(), name, cat, unit, qty, min, createdAt:new Date().toISOString() };
+    products.push(p);
+    if(qty>0) history.unshift({ id:uid(), productId:p.id, productName:p.name, type:'in', qty, comment:'Начальный остаток', date:new Date().toISOString() });
+    toast('Товар добавлен ✓');
+  }
+
+  save();
+  closeModal('productModal');
+  renderTable(); buildCatFilter();
+}
+
+// ============ OPERATION ============
+function openOpModal(productId) {
+  fillProductSelect(productId);
+  selectOpType('in');
+  document.getElementById('opQty').value = '';
+  document.getElementById('opComment').value = '';
+  document.getElementById('opModal').classList.add('open');
+}
+
+function fillProductSelect(selectedId) {
+  const sel = document.getElementById('opProduct');
+  sel.innerHTML = products.map(p=>`<option value="${p.id}" ${p.id===selectedId?'selected':''}>${p.name} (${p.qty} ${p.unit})</option>`).join('');
+}
+
+function selectOpType(type) {
+  currentOpType = type;
+  document.getElementById('opIn').className = 'op-type-btn' + (type==='in'?' selected-in':'');
+  document.getElementById('opOut').className = 'op-type-btn' + (type==='out'?' selected-out':'');
+  document.getElementById('opSubmitBtn').textContent = type==='in'?'Провести приход':'Провести расход';
+}
+
+function doOperation() {
+  const productId = document.getElementById('opProduct').value;
+  const qty = parseInt(document.getElementById('opQty').value)||0;
+  const comment = document.getElementById('opComment').value.trim();
+  if(qty<=0){ toast('Введите количество больше 0','error'); return; }
+  const p = products.find(x=>x.id===productId);
+  if(!p) return;
+  if(currentOpType==='out' && p.qty<qty){ toast(`Недостаточно товара. На складе: ${p.qty} ${p.unit}`,'error'); return; }
+  if(currentOpType==='in') p.qty+=qty; else p.qty-=qty;
+  history.unshift({ id:uid(), productId:p.id, productName:p.name, type:currentOpType, qty, comment:comment||'', date:new Date().toISOString() });
+  save();
+  closeModal('opModal');
+  renderTable(); buildCatFilter();
+  toast(currentOpType==='in'?`＋${qty} ${p.unit} → ${p.name}`:`－${qty} ${p.unit} → ${p.name}`);
+  if(p.qty<=p.min && p.qty>0) toast(`⚠️ Мало на складе: ${p.name} (${p.qty} ${p.unit})`,'warn');
+  if(p.qty<=0) toast(`🔴 Нет в наличии: ${p.name}`,'error');
+}
+
+// ============ DELETE ============
+function openDelModal(id) {
+  deletingId = id;
+  document.getElementById('delModal').classList.add('open');
+}
+
+function confirmDelete() {
+  products = products.filter(p=>p.id!==deletingId);
+  history = history.filter(h=>h.productId!==deletingId);
+  save();
+  closeModal('delModal');
+  renderTable(); buildCatFilter();
+  toast('Товар удалён');
+}
+
+// ============ HISTORY ============
+function buildHistoryProductFilter() {
+  const sel = document.getElementById('histProductFilter');
+  if(!sel) return;
+  const current = sel.value;
+  const names = [...new Set(history.map(h=>h.productName))].sort();
+  sel.innerHTML = '<option value="all">Все товары</option>' +
+    names.map(n=>`<option value="${n}" ${current===n?'selected':''}>${n}</option>`).join('');
+}
+
+function clearHistoryFilters() {
+  document.getElementById('histSearchInput').value = '';
+  document.getElementById('histTypeFilter').value = 'all';
+  document.getElementById('histProductFilter').value = 'all';
+  document.getElementById('histDateFrom').value = '';
+  document.getElementById('histDateTo').value = '';
+  renderHistory();
+}
+
+function getFilteredHistory() {
+  const search = (document.getElementById('histSearchInput')?.value||'').toLowerCase().trim();
+  const typeF = document.getElementById('histTypeFilter')?.value||'all';
+  const prodF = document.getElementById('histProductFilter')?.value||'all';
+  const dateFrom = document.getElementById('histDateFrom')?.value;
+  const dateTo = document.getElementById('histDateTo')?.value;
+
+  return history.filter(h => {
+    if(search && !h.productName.toLowerCase().includes(search) && !(h.comment||'').toLowerCase().includes(search)) return false;
+    if(typeF!=='all' && h.type!==typeF) return false;
+    if(prodF!=='all' && h.productName!==prodF) return false;
+    if(dateFrom) { const d=new Date(h.date); const f=new Date(dateFrom); f.setHours(0,0,0,0); if(d<f) return false; }
+    if(dateTo)   { const d=new Date(h.date); const t=new Date(dateTo);   t.setHours(23,59,59,999); if(d>t) return false; }
+    return true;
+  });
+}
+
+function highlightText(text, query) {
+  if(!query) return text;
+  const escaped = query.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+  return text.replace(new RegExp(`(${escaped})`, 'gi'), `<mark style="background:rgba(79,255,176,0.25);color:var(--accent);border-radius:2px;padding:0 2px">$1</mark>`);
+}
+
+function renderHistory() {
+  buildHistoryProductFilter();
+  const el = document.getElementById('historyList');
+  const empty = document.getElementById('historyEmpty');
+  const statsEl = document.getElementById('histStats');
+
+  if(!history.length) {
+    el.innerHTML=''; empty.style.display='block';
+    document.getElementById('histEmptyTitle').textContent='Нет операций';
+    document.getElementById('histEmptySubtitle').textContent='История будет отображаться здесь';
+    if(statsEl) statsEl.textContent='';
+    return;
+  }
+
+  const filtered = getFilteredHistory();
+  const search = (document.getElementById('histSearchInput')?.value||'').toLowerCase().trim();
+
+  // Stats
+  const totalIn  = filtered.filter(h=>h.type==='in').reduce((s,h)=>s+h.qty,0);
+  const totalOut = filtered.filter(h=>h.type==='out').reduce((s,h)=>s+h.qty,0);
+  if(statsEl) statsEl.innerHTML =
+    `Показано: <b style="color:var(--text)">${filtered.length}</b> из ${history.length} &nbsp;·&nbsp; ` +
+    `<span style="color:var(--accent)">＋${totalIn} приход</span> &nbsp;·&nbsp; ` +
+    `<span style="color:var(--accent2)">－${totalOut} расход</span>`;
+
+  if(!filtered.length) {
+    el.innerHTML=''; empty.style.display='block';
+    document.getElementById('histEmptyTitle').textContent='Ничего не найдено';
+    document.getElementById('histEmptySubtitle').textContent='Попробуйте изменить параметры поиска';
+    return;
+  }
+  empty.style.display='none';
+
+  // Group by date
+  const groups = {};
+  filtered.forEach(h=>{
+    const key = new Date(h.date).toLocaleDateString('ru-RU',{day:'2-digit',month:'long',year:'numeric'});
+    if(!groups[key]) groups[key]=[];
+    groups[key].push(h);
+  });
+
+  el.innerHTML = Object.entries(groups).map(([date, items])=>`
+    <div style="padding:8px 16px 4px;background:var(--surface2);border-bottom:1px solid var(--border)">
+      <span style="font-size:11px;color:var(--muted);font-family:var(--font-head);text-transform:uppercase;letter-spacing:0.6px">${date}</span>
+      <span style="font-size:11px;color:var(--muted);margin-left:8px">${items.length} операций</span>
+    </div>
+    ${items.map(h=>{
+      const d = new Date(h.date);
+      const timeStr = d.toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'});
+      const nameHl = highlightText(h.productName, search);
+      const commentHl = highlightText(h.comment||'—', search);
+      return `<div class="history-item">
+        <div class="history-dot ${h.type==='in'?'dot-in':'dot-out'}">${h.type==='in'?'⬆':'⬇'}</div>
+        <div class="history-info">
+          <div class="history-prod">${nameHl}</div>
+          <div class="history-meta">${commentHl}</div>
+        </div>
+        <div class="history-qty ${h.type==='in'?'qty-in':'qty-out'}">${h.type==='in'?'+':'-'}${h.qty}</div>
+        <div class="history-date">${timeStr}</div>
+      </div>`;
+    }).join('')}
+  `).join('');
+}
+
+function exportHistoryExcel() {
+  const filtered = getFilteredHistory();
+  if(!filtered.length){ toast('Нет данных для экспорта','error'); return; }
+  const data = [['Дата','Время','Товар','Тип','Количество','Комментарий']];
+  filtered.forEach(h=>{
+    const d = new Date(h.date);
+    data.push([
+      d.toLocaleDateString('ru-RU'),
+      d.toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}),
+      h.productName,
+      h.type==='in'?'Приход':'Расход',
+      h.qty,
+      h.comment||''
+    ]);
+  });
+  const ws = XLSX.utils.aoa_to_sheet(data);
+  ws['!cols'] = [{wch:14},{wch:8},{wch:30},{wch:10},{wch:12},{wch:30}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'История');
+  XLSX.writeFile(wb, `История_${new Date().toLocaleDateString('ru-RU').replace(/\./g,'-')}.xlsx`);
+  toast(`Экспортировано ${filtered.length} записей ✓`);
+}
+
+// ============ LOW STOCK ============
+function renderLowStock() {
+  const el = document.getElementById('lowStockList');
+  const low = products.filter(p=>p.qty<=p.min);
+  if(!low.length){ el.innerHTML=`<div class="empty-state"><div class="empty-icon">✅</div><div class="empty-title">Всё в порядке</div><div>Нет товаров с низким остатком</div></div>`; return; }
+  el.innerHTML = low.map(p=>{
+    const isOut = p.qty<=0;
+    return `<div class="alert-bar">
+      <div class="alert-icon">${isOut?'🔴':'⚠️'}</div>
+      <div style="flex:1">
+        <b>${p.name}</b>
+        <div style="font-size:12px;color:var(--muted);margin-top:2px">${isOut?'Нет в наличии':'Осталось: '}<b>${isOut?'':p.qty+' '+p.unit}</b> / минимум: ${p.min} ${p.unit}</div>
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="openOpModal('${p.id}');openPage('warehouse')">Пополнить</button>
+    </div>`;
+  }).join('');
+}
+
+// ============ CATEGORIES ============
+function renderCats() {
+  const tbody = document.getElementById('catsTableBody');
+  tbody.innerHTML = categories.map(c=>{
+    const count = products.filter(p=>p.cat===c).length;
+    return `<tr>
+      <td>${c}</td>
+      <td><span style="color:var(--muted)">${count} товаров</span></td>
+      <td style="text-align:right">
+        ${count===0?`<button class="btn btn-danger-ghost btn-sm" onclick="deleteCategory('${c}')">Удалить</button>`:''}
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function addCategory() {
+  const val = document.getElementById('newCatInput').value.trim();
+  if(!val){ toast('Введите название','error'); return; }
+  if(categories.includes(val)){ toast('Категория уже есть','error'); return; }
+  categories.push(val);
+  save();
+  document.getElementById('newCatInput').value='';
+  renderCats();
+  toast('Категория добавлена ✓');
+}
+
+function deleteCategory(name) {
+  categories = categories.filter(c=>c!==name);
+  save();
+  renderCats();
+  toast('Категория удалена');
+}
+
+// ============ MODALS ============
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+}
+document.querySelectorAll('.modal-overlay').forEach(overlay=>{
+  overlay.addEventListener('click', e=>{ if(e.target===overlay) overlay.classList.remove('open'); });
+});
+
+// ============ TOAST ============
+function toast(msg, type='ok') {
+  const container = document.getElementById('toastContainer');
+  const el = document.createElement('div');
+  el.className = 'toast' + (type==='error'?' error':'');
+  el.textContent = msg;
+  container.appendChild(el);
+  setTimeout(()=>el.remove(), 3000);
+}
+
+// ============ EXCEL EXPORT ============
+function exportExcel() {
+  if(!products.length){ toast('Нет товаров для экспорта','error'); return; }
+  const data = [['Название','Категория','Единица','Количество','Мин. порог']];
+  products.forEach(p => data.push([p.name, p.cat, p.unit, p.qty, p.min]));
+  const ws = XLSX.utils.aoa_to_sheet(data);
+  ws['!cols'] = [{wch:30},{wch:16},{wch:10},{wch:14},{wch:14}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Склад');
+
+  // Export history sheet
+  if(history.length) {
+    const hdata = [['Дата','Товар','Тип','Количество','Комментарий']];
+    history.forEach(h => hdata.push([new Date(h.date).toLocaleString('ru-RU'), h.productName, h.type==='in'?'Приход':'Расход', h.qty, h.comment||'']));
+    const wsh = XLSX.utils.aoa_to_sheet(hdata);
+    XLSX.utils.book_append_sheet(wb, wsh, 'История');
+  }
+
+  XLSX.writeFile(wb, `Живой_Склад_${new Date().toLocaleDateString('ru-RU').replace(/\./g,'-')}.xlsx`);
+  toast('Файл Excel скачан ✓');
+}
+
+function downloadTemplate() {
+  const data = [
+    ['Название','Категория','Единица','Количество','Мин. порог'],
+    ['Болт М8х20','Расходники','шт',150,20],
+    ['Масло моторное 5W-40','Запчасти','л',48,10],
+    ['Перчатки рабочие','Общее','пара',30,5],
+  ];
+  const ws = XLSX.utils.aoa_to_sheet(data);
+  ws['!cols'] = [{wch:30},{wch:16},{wch:10},{wch:14},{wch:14}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Склад');
+  XLSX.writeFile(wb, 'Шаблон_Живой_Склад.xlsx');
+  toast('Шаблон скачан ✓');
+}
+
+// ============ EXCEL IMPORT ============
+let importRawData = [];
+let importHeaders = [];
+let importColMap = { name: '', cat: '', unit: '', qty: '', min: '' };
+
+function handleFileDrop(e) {
+  e.preventDefault();
+  document.getElementById('dropZone').classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if(file) processImportFile(file);
+}
+
+function handleFileSelect(e) {
+  const file = e.target.files[0];
+  if(file) processImportFile(file);
+}
+
+function processImportFile(file) {
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const data = new Uint8Array(e.target.result);
+      const wb = XLSX.read(data, {type:'array'});
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:''});
+      if(!rows.length){ toast('Файл пустой','error'); return; }
+      importHeaders = rows[0].map(h=>String(h));
+      importRawData = rows.slice(1).filter(r=>r.some(c=>c!==''));
+      // auto-detect columns
+      const autoMap = { name:'', cat:'', unit:'', qty:'', min:'' };
+      const aliases = {
+        name: ['название','наименование','товар','name','product','item'],
+        cat: ['категория','cat','category','раздел','группа'],
+        unit: ['единица','ед','unit','мера','ед.'],
+        qty: ['количество','кол-во','qty','quantity','остаток','stock'],
+        min: ['минимум','мин','min','порог','minimum']
+      };
+      importHeaders.forEach((h,i)=>{
+        const hl = h.toLowerCase().trim();
+        Object.entries(aliases).forEach(([field,words])=>{
+          if(!autoMap[field] && words.some(w=>hl.includes(w))) autoMap[field]=h;
+        });
+      });
+      importColMap = autoMap;
+      importGoStep(2);
+    } catch(err) {
+      toast('Ошибка чтения файла: ' + err.message, 'error');
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function importGoStep(step) {
+  [1,2,3].forEach(s=>{
+    document.getElementById('importStep'+s).style.display = s===step?'block':'none';
+    document.getElementById('istep'+s).classList.toggle('active', s===step);
+  });
+  if(step===2) renderColMap();
+  if(step===3) renderImportPreview();
+}
+
+function renderColMap() {
+  const fields = [
+    {key:'name', label:'📦 Название (обязательно)'},
+    {key:'cat', label:'🏷️ Категория'},
+    {key:'unit', label:'📐 Единица измерения'},
+    {key:'qty', label:'🔢 Количество'},
+    {key:'min', label:'⚠️ Минимальный порог'},
+  ];
+  const el = document.getElementById('colMapArea');
+  el.innerHTML = fields.map(f=>`
+    <div class="col-map-item">
+      <span class="col-map-label">${f.label}</span>
+      <select class="form-select" style="flex:1" onchange="importColMap['${f.key}']=this.value">
+        <option value="">— не выбрано —</option>
+        ${importHeaders.map(h=>`<option value="${h}" ${importColMap[f.key]===h?'selected':''}>${h}</option>`).join('')}
+      </select>
+    </div>
+  `).join('');
+}
+
+function renderImportPreview() {
+  const rows = importRawData.map(row => {
+    const get = col => col ? row[importHeaders.indexOf(col)] ?? '' : '';
+    return {
+      name: String(get(importColMap.name)).trim(),
+      cat: String(get(importColMap.cat)||'Общее').trim(),
+      unit: String(get(importColMap.unit)||'шт').trim(),
+      qty: parseInt(get(importColMap.qty))||0,
+      min: parseInt(get(importColMap.min))||0,
+    };
+  }).filter(r=>r.name);
+
+  document.getElementById('importRowCount').textContent = rows.length;
+  const el = document.getElementById('importPreview');
+  if(!rows.length){ el.innerHTML='<div class="empty-state"><div>Нет данных для импорта. Проверьте сопоставление колонок.</div></div>'; return; }
+
+  el.innerHTML = `<table>
+    <thead><tr><th>Название</th><th>Категория</th><th>Ед.</th><th>Кол-во</th><th>Мин.</th><th>Статус</th></tr></thead>
+    <tbody>
+      ${rows.map(r=>{
+        const exists = products.find(p=>p.name.toLowerCase()===r.name.toLowerCase());
+        return `<tr>
+          <td>${r.name}</td><td>${r.cat}</td><td>${r.unit}</td><td>${r.qty}</td><td>${r.min}</td>
+          <td><span class="badge ${exists?'badge-low':'badge-ok'}">${exists?'Дубликат':'Новый'}</span></td>
+        </tr>`;
+      }).join('')}
+    </tbody>
+  </table>`;
+  el._rows = rows;
+}
+
+function doImport() {
+  const el = document.getElementById('importPreview');
+  const rows = el._rows;
+  if(!rows||!rows.length){ toast('Нет данных','error'); return; }
+  const skipDupes = document.getElementById('skipDupes').checked;
+  let added=0, skipped=0;
+  rows.forEach(r=>{
+    const exists = products.find(p=>p.name.toLowerCase()===r.name.toLowerCase());
+    if(exists && skipDupes){ skipped++; return; }
+    if(exists && !skipDupes){ exists.qty+=r.qty; exists.min=r.min||exists.min; added++; return; }
+    const p = { id:uid(), name:r.name, cat:r.cat, unit:r.unit, qty:r.qty, min:r.min, createdAt:new Date().toISOString() };
+    products.push(p);
+    if(r.cat && !categories.includes(r.cat)) categories.push(r.cat);
+    if(r.qty>0) history.unshift({ id:uid(), productId:p.id, productName:p.name, type:'in', qty:r.qty, comment:'Импорт из Excel', date:new Date().toISOString() });
+    added++;
+  });
+  save();
+  toast(`Импортировано: ${added}${skipped?', пропущено: '+skipped:''} ✓`);
+  importGoStep(1);
+  document.getElementById('fileInput').value='';
+  openPage('warehouse');
+}
+
+// ============ INIT ============
+async function appInit() {
+  // Load local cache first (instant render while we check auth)
+  products   = JSON.parse(localStorage.getItem('zs_products') || '[]');
+  history    = JSON.parse(localStorage.getItem('zs_history')  || '[]');
+  categories = JSON.parse(localStorage.getItem('zs_cats')     || '["Общее","Расходники","Инструмент","Запчасти"]');
+
+  const savedConfig = localStorage.getItem('zs_fb_config');
+  const skipFb      = localStorage.getItem('zs_skip_firebase');
+
+  if(skipFb) {
+    // Offline mode — no auth, just local
+    document.getElementById('appShell').style.display = 'flex';
+    showSyncStatus('offline');
+    renderTable(); buildCatFilter(); updateStats();
+    return;
+  }
+
+  if(savedConfig) {
+    try {
+      fbConfig = JSON.parse(savedConfig);
+      const ok = await initFirebase(fbConfig);
+      if(ok) {
+        // Wait for Firebase auth state to restore session
+        const { onAuthStateChanged } = window.authFns;
+        onAuthStateChanged(auth, async (user) => {
+          if(user) {
+            currentUser = user;
+            document.getElementById('appShell').style.display = 'flex';
+            document.getElementById('loginScreen').style.display = 'none';
+            showSyncStatus('saving');
+            await loadFromFirebase();
+            showSyncStatus('saved');
+            renderTable(); buildCatFilter(); updateStats();
+          } else {
+            // Not logged in — show login screen
+            showLoginScreen();
+          }
+        });
+        return;
+      }
+    } catch(e) { /* fall through to setup */ }
+  }
+
+  // No config saved — show setup
+  showSetupScreen();
+}
+
+appInit();
+</script>
+</body>
+</html>
