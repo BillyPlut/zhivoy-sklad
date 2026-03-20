@@ -1106,7 +1106,15 @@ let currentCatFilter = 'all';
 // ============ FIREBASE CONFIG ============
 let db = null;
 let auth = null;
-let fbConfig = null;
+let fbConfig = {
+  apiKey: "AIzaSyDuu1uNPX3f7xXjdq3p36w0Xm21fgBXSD8",
+  authDomain: "bioflow-53202.firebaseapp.com",
+  projectId: "bioflow-53202",
+  storageBucket: "bioflow-53202.firebasestorage.app",
+  messagingSenderId: "754723144519",
+  appId: "1:754723144519:web:9be61210e6b270602cc262",
+  measurementId: "G-1J2RVZBGSF"
+};
 let saveTimer = null;
 let currentUser = null;
 
@@ -1909,8 +1917,7 @@ async function appInit() {
   history    = JSON.parse(localStorage.getItem('zs_history')  || '[]');
   categories = JSON.parse(localStorage.getItem('zs_cats')     || '["Общее","Расходники","Инструмент","Запчасти"]');
 
-  const savedConfig = localStorage.getItem('zs_fb_config');
-  const skipFb      = localStorage.getItem('zs_skip_firebase');
+  const skipFb = localStorage.getItem('zs_skip_firebase');
 
   if(skipFb) {
     // Offline mode — no auth, just local
@@ -1920,34 +1927,28 @@ async function appInit() {
     return;
   }
 
-  if(savedConfig) {
-    try {
-      fbConfig = JSON.parse(savedConfig);
-      const ok = await initFirebase(fbConfig);
-      if(ok) {
-        // Wait for Firebase auth state to restore session
-        const { onAuthStateChanged } = window.authFns;
-        onAuthStateChanged(auth, async (user) => {
-          if(user) {
-            currentUser = user;
-            document.getElementById('appShell').style.display = 'flex';
-            document.getElementById('loginScreen').style.display = 'none';
-            showSyncStatus('saving');
-            await loadFromFirebase();
-            showSyncStatus('saved');
-            renderTable(); buildCatFilter(); updateStats();
-          } else {
-            // Not logged in — show login screen
-            showLoginScreen();
-          }
-        });
-        return;
-      }
-    } catch(e) { /* fall through to setup */ }
-  }
+  try {
+    const ok = await initFirebase(fbConfig);
+    if(ok) {
+      const { onAuthStateChanged } = window.authFns;
+      onAuthStateChanged(auth, async (user) => {
+        if(user) {
+          currentUser = user;
+          document.getElementById('appShell').style.display = 'flex';
+          document.getElementById('loginScreen').style.display = 'none';
+          showSyncStatus('saving');
+          await loadFromFirebase();
+          showSyncStatus('saved');
+          renderTable(); buildCatFilter(); updateStats();
+        } else {
+          showLoginScreen();
+        }
+      });
+      return;
+    }
+  } catch(e) { /* fall through to login */ }
 
-  // No config saved — show setup
-  showSetupScreen();
+  showLoginScreen();
 }
 
 appInit();
