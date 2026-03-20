@@ -948,7 +948,7 @@
               <th>Закупочная цена</th>
               <th>Продажная цена</th>
               <th>Маржа</th>
-              <th>Наценка</th>
+              <th>Налог 4%</th>
               <th>Прибыль на ед.</th>
             </tr>
           </thead>
@@ -1409,7 +1409,7 @@ function renderPriceList() {
   tbody.innerHTML = products.map(p => {
     const buy = p.buyPrice||0, sell = p.sellPrice||0;
     const margin = sell>0 ? (sell-buy)/sell*100 : null;
-    const markup = buy>0 ? (sell-buy)/buy*100 : null;
+    const tax = sell>0 ? sell*0.04 : null;
     const profit = sell>0 && buy>0 ? sell-buy : null;
     const marginHtml = margin!==null
       ? `<span class="margin-badge ${margin>=30?'margin-good':margin>=15?'margin-mid':'margin-low'}">${margin.toFixed(1)}%</span>`
@@ -1426,7 +1426,7 @@ function renderPriceList() {
         onchange="updatePriceField('${p.id}','sellPrice',this.value)"
         onblur="updatePriceField('${p.id}','sellPrice',this.value)"></td>
       <td>${marginHtml}</td>
-      <td>${markup!==null ? markup.toFixed(1)+'%' : '—'}</td>
+      <td style="color:var(--warn)">${tax!==null ? fmtPrice(tax) : '—'}</td>
       <td style="color:var(--accent)">${profit!==null ? fmtPrice(profit) : '—'}</td>
     </tr>`;
   }).join('');
